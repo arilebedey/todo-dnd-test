@@ -4,11 +4,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        general_color: "#9E78CF",
-        background: "#0D0714",
-        white: "#FFFFFF",
-        form_border: "#3E1671",
-        completed_todo: "#6BB79D",
+        theme: {
+          DEFAULT: "#9E78CF",
+          100: "#9E78CF",
+          500: "#3E1671",
+          900: "#0D0714",
+        },
+        white: {
+          DEFAULT: "#FFFFFF",
+        },
+        green: {
+          DEFAULT: "#6BB79D",
+        },
       },
     },
     screens: {
