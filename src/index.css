@@ -1,5 +1,5 @@
 @import "./tailwind.css";
 
 :root {
-  @apply bg-theme;
+  @apply bg-theme-900;
 }
