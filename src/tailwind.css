@@ -2,14 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer components {
-  .button-130 {
-    @apply bg-zinc-100 rounded-md shadow-2xl p-8 border-4 border-zinc-300;
-  }
-}
-
 @layer base {
   input {
+    @apply text-gray-600 text-xl;
     @apply focus:outline-none focus:ring-0 !important;
+    @apply focus:text-white;
   }
 }
