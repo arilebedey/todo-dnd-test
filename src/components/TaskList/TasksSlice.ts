@@ -6,7 +6,13 @@ interface TaskData {
   completed: boolean;
 }
 
-const initialState: TaskData[] = [];
+const initialState: TaskData[] = [
+  {
+    id: 0,
+    title: "Showcase",
+    completed: true,
+  },
+];
 
 export const tasksSlice = createSlice({
   name: "task",
@@ -20,7 +26,10 @@ export const tasksSlice = createSlice({
       });
     },
     removeTask: (state, action: PayloadAction<number>) => {
-      return state.filter((task) => task.id !== action.payload);
+      const index = state.findIndex((task) => task.id === action.payload);
+      if (index !== -1) {
+        state.splice(index, 1);
+      }
     },
     toggleTask: (state, action: PayloadAction<number>) => {
       const task = state.find((task) => task.id === action.payload);
@@ -37,17 +46,18 @@ export const tasksSlice = createSlice({
         task.title = action.payload.title;
       }
     },
-    reoderTask: (
+    reorderTask: (
       state,
       action: PayloadAction<{ formIndex: number; toIndex: number }>,
     ) => {
-      const { formIndex, toIndex } = action.payload;
-      const [movedTask] = state.splice(formIndex, 1);
+      const { formIndex: fromIndex, toIndex } = action.payload;
+      const [movedTask] = state.splice(fromIndex, 1);
       state.splice(toIndex, 0, movedTask);
     },
   },
 });
 
-export const { addTask, removeTask, toggleTask } = tasksSlice.actions;
+export const { addTask, removeTask, toggleTask, reorderTask, updateTask } =
+  tasksSlice.actions;
 
 export default tasksSlice.reducer;

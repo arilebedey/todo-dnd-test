@@ -4,7 +4,6 @@ import { addTask } from "../TaskList/TasksSlice";
 
 export const NewTask = () => {
   const [taskTitle, setTaskTitle] = useState("");
-  const [editTaskTitle, setEditTaskTitle] = useState("");
   const dispatch = useDispatch();
 
   const handleUpdateTask = (e: React.MouseEvent<HTMLButtonElement>) => {
