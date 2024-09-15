@@ -8,6 +8,7 @@ export default {
           DEFAULT: "#9E78CF",
           100: "#9E78CF",
           500: "#3E1671",
+          800: "#15101C",
           900: "#0D0714",
         },
         white: {
