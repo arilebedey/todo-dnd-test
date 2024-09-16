@@ -14,7 +14,7 @@ export const TaskList = () => {
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
   const [inputEditTask, setInputEditTask] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const tasks = useSelector((state: RootState) => state.task || []);
+  const tasks = useSelector((state: RootState) => state.task);
   const dispatch = useDispatch();
 
   useEffect(() => {
