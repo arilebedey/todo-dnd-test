@@ -65,7 +65,7 @@ export const TaskList = () => {
   };
 
   // Once the edit button on a task was pressed a checkmark to save changes will appear until it is pressed or enter is hit inside input
-  const handleConfirmCheckmarkButton = (taskId: number) => {
+  const handleConfirmButton = (taskId: number) => {
     handleUpdateTask(taskId);
   };
 
@@ -107,7 +107,7 @@ export const TaskList = () => {
                   <FiEdit3 className="size-5 text-theme-100 mr-4" />
                 </button>
               ) : (
-                <button onClick={() => handleConfirmCheckmarkButton(task.id)}>
+                <button onClick={() => handleConfirmButton(task.id)}>
                   <FaCheck className="size-5 text-theme-100 mr-4" />
                 </button>
               )}
