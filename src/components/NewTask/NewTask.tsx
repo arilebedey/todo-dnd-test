@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux";
 import { addTask } from "../TaskList/TasksSlice";
 import { SubmitHandler, useForm } from "react-hook-form";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface FormData {
   newTask: string;
@@ -10,16 +10,40 @@ interface FormData {
 export const NewTask = () => {
   const dispatch = useDispatch();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [refocusInputTrigger, setRefocusInputTrigger] = useState(false);
 
   const {
     reset,
+    trigger,
     register,
     handleSubmit,
     formState: { errors, isValid },
   } = useForm<FormData>({
     mode: "onChange",
   });
+
+  useEffect(() => {
+    if (errors.newTask) {
+      setShowError(true);
+
+      const timer = setTimeout(() => {
+        setShowError(false);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [errors.newTask]);
+
+  useEffect(() => {
+    if (refocusInputTrigger) {
+      inputRef.current?.focus();
+      setIsInputFocused(true);
+      setRefocusInputTrigger(false);
+    }
+  }, [refocusInputTrigger]);
 
   const { ref: HookFormRef, ...rest } = register("newTask", {
     required: "Task is required",
@@ -29,20 +53,40 @@ export const NewTask = () => {
     },
   });
 
-  const handleButtonClick = () => {
+  const handleButtonClick = async () => {
     if (inputRef.current && inputRef.current.value.trim() === "") {
-      reset();
-      inputRef.current.focus();
+      if (!isInputFocused) {
+        reset();
+        inputRef.current.focus();
+        return;
+      }
+
+      // This is needed to trigger validation on an empty input without
+      // because `handleSubmit(handleUpdateTask)` doesn't validate on empty
+      // input unless it's in the form's `onSubmit (i.e. triggered by Enter key)`
+      const isValidForm = await trigger("newTask");
+
+      if (!isValidForm) {
+        // This allows mimicking the UX of Enter key, which displays error
+        // while keeping input focused
+        setRefocusInputTrigger(true);
+      } else {
+        handleSubmit(handleUpdateTask)();
+      }
     } else {
       handleSubmit(handleUpdateTask)();
     }
   };
 
   const handleInputFocus = () => {
+    if (refocusInputTrigger) {
+      // handled in useEffect
+      return;
+    }
     if (inputRef.current && inputRef.current.value.trim() === "") {
       reset();
+      setIsInputFocused(true);
     }
-    setIsInputFocused(true);
   };
 
   const handleUpdateTask: SubmitHandler<FormData> = (data) => {
@@ -50,23 +94,33 @@ export const NewTask = () => {
     reset();
   };
 
+  const handleInputBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    // If the focus is moving from input to the **submit** button, bypass `setIsInputFocused(false);`,
+    // so that the input is not forever refocused back on the button click
+    // Enables validation logic in handleButtonClick to go through
+    if (event.relatedTarget === buttonRef.current) {
+      return;
+    }
+    setIsInputFocused(false);
+  };
+
   return (
     <form
-      className="flex justify-center text-white w-full flex-col"
+      className="flex justify-center text-white w-full flex-col mt-20 relative"
       onSubmit={handleSubmit(handleUpdateTask)}
     >
-      <div className="flex relative">
+      <div className="flex flex-grow">
         <input
           type="text"
           placeholder="Новая задача"
-          className="flex justify-center w-full h-[40px] bg-theme-900 rounded-lg border border-theme-500 px-3 flex-grow"
+          className="flex-grow h-[40px] bg-theme-900 rounded-lg border border-theme-500 px-3"
           {...rest}
           ref={(e) => {
             HookFormRef(e);
             inputRef.current = e;
           }}
           onFocus={handleInputFocus}
-          onBlur={() => setIsInputFocused(false)}
+          onBlur={handleInputBlur}
         ></input>
         <button
           type="button"
@@ -74,12 +128,13 @@ export const NewTask = () => {
             isInputFocused || isValid ? "bg-theme-100" : "bg-gray-400"
           }`}
           onClick={handleButtonClick}
+          ref={buttonRef}
         >
           +
         </button>
       </div>
-      {errors.newTask && isInputFocused && (
-        <p className="text-red-500 mt-2 absolute top-36 self-center">
+      {showError && errors.newTask && (
+        <p className="text-red-500 mt-2 absolute top-[45px] self-center">
           {errors.newTask.message}
         </p>
       )}
