@@ -105,11 +105,11 @@ export const NewTask = () => {
   };
 
   return (
-    <form
-      className="flex justify-center text-white w-full flex-col mt-20 relative"
-      onSubmit={handleSubmit(handleUpdateTask)}
-    >
-      <div className="flex flex-grow">
+    <div className="flex justify-center text-white w-full mt-20 relative">
+      <form
+        className="flex flex-grow"
+        onSubmit={handleSubmit(handleUpdateTask)}
+      >
         <input
           type="text"
           placeholder="Новая задача"
@@ -122,22 +122,22 @@ export const NewTask = () => {
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
         ></input>
-        <button
-          type="button"
-          className={`cursor-pointer text-white h-[40px] w-[40px] rounded-xl text-3xl font-light ml-4 ${
-            isInputFocused || isValid ? "bg-theme-100" : "bg-gray-400"
-          }`}
-          onClick={handleButtonClick}
-          ref={buttonRef}
-        >
-          +
-        </button>
-      </div>
+      </form>
       {showError && errors.newTask && (
-        <p className="text-red-500 mt-2 absolute top-[45px] self-center">
+        <p className="text-red-500 mt-2 absolute top-[45px]">
           {errors.newTask.message}
         </p>
       )}
-    </form>
+      <button
+        type="button"
+        className={`cursor-pointer text-white h-[40px] w-[40px] rounded-xl text-3xl font-light ml-4 ${
+          isInputFocused || isValid ? "bg-theme-100" : "bg-gray-400"
+        }`}
+        onClick={handleButtonClick}
+        ref={buttonRef}
+      >
+        +
+      </button>
+    </div>
   );
 };
