@@ -8,14 +8,24 @@ interface TaskData {
 
 const initialState: TaskData[] = [
   {
-    id: 0,
-    title: "Showcase",
+    id: 3,
+    title: "Surf",
     completed: true,
+  },
+  {
+    id: 2,
+    title: "Share with someone",
+    completed: false,
+  },
+  {
+    id: 1,
+    title: "Make more money",
+    completed: false,
   },
 ];
 
 export const tasksSlice = createSlice({
-  name: "task",
+  name: "tasks",
   initialState,
   reducers: {
     addTask: (state, action: PayloadAction<string>) => {

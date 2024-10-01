@@ -10,14 +10,17 @@ interface FormData {
 
 type TodoInputProps = {
   placeholder: string;
-  inputClassName?: string;
-  formClassName?: string;
-  buttonRef: React.RefObject<HTMLButtonElement>;
-  setError: (error: object) => void;
-  setIsValid: (isValid: boolean) => void;
-  setIsInputFocused: (isInputFocused: boolean) => void;
-  isInputFocused: boolean;
+  inputClassName: string;
+  formClassName: string;
+  onError: (error: object) => void;
+  onIsValid: (isValid: boolean) => void;
   handler: number;
+  buttonRef?: React.RefObject<HTMLButtonElement>;
+  onInputFocus: (inputFocusState: boolean) => void;
+  inputFocusState: boolean;
+  TaskToEdit?: { type: string; taskId: number | null };
+  onSubmitEdit?: (params: { type: string; taskId: number | null }) => void;
+  value?: string;
 };
 
 export const TodoInput: React.FC<TodoInputProps> = ({
@@ -25,11 +28,14 @@ export const TodoInput: React.FC<TodoInputProps> = ({
   inputClassName,
   formClassName,
   buttonRef,
-  setError,
-  setIsValid,
-  setIsInputFocused,
-  isInputFocused,
+  onError,
+  onIsValid,
+  onInputFocus,
+  inputFocusState,
   handler,
+  onSubmitEdit,
+  TaskToEdit,
+  value,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [refocusInputTrigger, setRefocusInputTrigger] = useState(false);
@@ -55,14 +61,20 @@ export const TodoInput: React.FC<TodoInputProps> = ({
 
   const handleUpdateTask: SubmitHandler<FormData> = useCallback(
     (data) => {
-      // dispatch(updateTask({data.id, data.newTask}));
-      dispatch(addTask(data.newTask));
-      reset();
+      if (
+        TaskToEdit?.taskId !== undefined &&
+        TaskToEdit.taskId !== null &&
+        onSubmitEdit
+      ) {
+        dispatch(updateTask({ id: TaskToEdit?.taskId, title: data.newTask }));
+        onSubmitEdit({ type: TaskToEdit.type, taskId: null });
+        reset();
+      }
     },
-    [reset, dispatch],
+    [reset, dispatch, TaskToEdit, onSubmitEdit],
   );
 
-  const getDispatchHandler = useCallback(
+  const dispatchHandler = useCallback(
     (handler: number) => {
       if (handler === 1) {
         return handleAddTask;
@@ -76,22 +88,24 @@ export const TodoInput: React.FC<TodoInputProps> = ({
   );
 
   useEffect(() => {
+    inputRef.current?.focus();
+    onInputFocus(true);
     if (refocusInputTrigger) {
       inputRef.current?.focus();
-      setIsInputFocused(true);
+      onInputFocus(true);
       setRefocusInputTrigger(false);
     }
-  }, [refocusInputTrigger, setIsInputFocused]);
+  }, [refocusInputTrigger, onInputFocus]);
 
   useEffect(() => {
     if (errors.newTask) {
-      setError(errors.newTask);
+      onError(errors.newTask);
     }
-  }, [errors.newTask, setError]);
+  }, [errors.newTask, onError]);
 
   useEffect(() => {
-    setIsValid(isValid);
-  }, [isValid, setIsValid]);
+    onIsValid(isValid);
+  }, [isValid, onIsValid]);
 
   const { ref: HookFormRef, ...rest } = register("newTask", {
     required: "Task is required",
@@ -102,45 +116,81 @@ export const TodoInput: React.FC<TodoInputProps> = ({
   });
 
   const handleButtonClickWrapper = useCallback(async () => {
+    const isValidForm = await trigger("newTask");
+
+    if (!isValidForm) {
+      setRefocusInputTrigger(true);
+    } else {
+      handleSubmit(dispatchHandler(handler))();
+    }
+  }, [setRefocusInputTrigger, dispatchHandler, handleSubmit, handler, trigger]);
+
+  const handleButtonClickCheckFocusWrapper = useCallback(async () => {
     if (inputRef.current && inputRef.current.value.trim() === "") {
-      if (!isInputFocused) {
+      if (!inputFocusState) {
         reset();
         inputRef.current.focus();
-        setIsInputFocused(true);
+        onInputFocus(true);
         return;
       }
 
+      // This is needed to trigger validation on an empty input
+      // because `handleSubmit(handleUpdateTask)` doesn't validate on empty
+      // input unless it's triggered by Enter key
       const isValidForm = await trigger("newTask");
 
       if (!isValidForm) {
         setRefocusInputTrigger(true);
       }
     } else {
-      handleSubmit(getDispatchHandler(handler))();
+      handleSubmit(dispatchHandler(handler))();
     }
   }, [
-    setIsInputFocused,
-    isInputFocused,
+    onInputFocus,
+    inputFocusState,
     reset,
     trigger,
     handleSubmit,
-    getDispatchHandler,
+    dispatchHandler,
     handler,
   ]);
 
   useEffect(() => {
-    if (buttonRef.current) {
-      buttonRef.current.addEventListener("click", handleButtonClickWrapper);
+    const currentButton = buttonRef?.current;
+
+    if (currentButton && handler === 2) {
+      currentButton.addEventListener("click", handleButtonClickWrapper);
     }
-
-    const currentButton = buttonRef.current;
-
     return () => {
       if (currentButton) {
         currentButton.removeEventListener("click", handleButtonClickWrapper);
       }
     };
-  }, [buttonRef, isInputFocused, handleButtonClickWrapper]);
+  }, [buttonRef, handleButtonClickWrapper, handler]);
+
+  useEffect(() => {
+    const currentButton = buttonRef?.current;
+    if (currentButton && handler === 1) {
+      currentButton.addEventListener(
+        "click",
+        handleButtonClickCheckFocusWrapper,
+      );
+    }
+    return () => {
+      if (currentButton) {
+        currentButton.removeEventListener(
+          "click",
+          handleButtonClickCheckFocusWrapper,
+        );
+      }
+    };
+  }, [buttonRef, handleButtonClickCheckFocusWrapper, handler]);
+
+  useEffect(() => {
+    if (TaskToEdit?.type === "update") {
+      handleButtonClickWrapper();
+    }
+  }, [TaskToEdit, handleButtonClickWrapper]);
 
   const handleInputFocus = () => {
     if (refocusInputTrigger) {
@@ -149,32 +199,33 @@ export const TodoInput: React.FC<TodoInputProps> = ({
     }
     if (inputRef.current && inputRef.current.value.trim() === "") {
       reset();
-      setIsInputFocused(true);
+      onInputFocus(true);
     }
   };
 
   const handleInputBlur = (
     event: React.FocusEvent<HTMLInputElement>,
-    currentButtonRef: React.RefObject<HTMLButtonElement>,
+    currentButtonRef: React.RefObject<HTMLButtonElement> | undefined,
   ) => {
     // If the focus is moving from input to the **submit** button, bypass `setIsInputFocused(false);`,
     // so that the input is not forever refocused back on the button click
     // Enables validation logic in handleButtonClick to go through
-    if (event.relatedTarget === currentButtonRef.current) {
+    if (currentButtonRef && event.relatedTarget === currentButtonRef.current) {
       return;
     }
-    setIsInputFocused(false);
+    onInputFocus(false);
   };
 
   return (
     <>
       <form
         className={clsx("", formClassName)}
-        onSubmit={handleSubmit(getDispatchHandler(handler))}
+        onSubmit={handleSubmit(dispatchHandler(handler))}
       >
         <input
           type="text"
           placeholder={placeholder}
+          defaultValue={value ? value : ""}
           className={clsx("", inputClassName)}
           {...rest}
           ref={(e) => {
