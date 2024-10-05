@@ -216,6 +216,10 @@ export const TodoInput: React.FC<TodoInputProps> = ({
     onInputFocus(false);
   };
 
+  const preventDragHandler = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  };
+
   return (
     <>
       <form
@@ -234,6 +238,8 @@ export const TodoInput: React.FC<TodoInputProps> = ({
           }}
           onFocus={handleInputFocus}
           onBlur={(e) => handleInputBlur(e, buttonRef)}
+          onPointerDown={(e) => preventDragHandler(e)}
+          onTouchStart={(e) => preventDragHandler(e)}
         ></input>
       </form>
     </>

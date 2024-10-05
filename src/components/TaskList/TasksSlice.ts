@@ -58,9 +58,9 @@ export const tasksSlice = createSlice({
     },
     reorderTask: (
       state,
-      action: PayloadAction<{ formIndex: number; toIndex: number }>,
+      action: PayloadAction<{ fromIndex: number; toIndex: number }>,
     ) => {
-      const { formIndex: fromIndex, toIndex } = action.payload;
+      const { fromIndex, toIndex } = action.payload;
       const [movedTask] = state.splice(fromIndex, 1);
       state.splice(toIndex, 0, movedTask);
     },

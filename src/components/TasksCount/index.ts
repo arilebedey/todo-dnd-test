@@ -1,1 +1,1 @@
-export { TasksCount as TasksCount } from "./TasksCount.tsx";
+export { TasksCount } from "./TasksCount.tsx";
