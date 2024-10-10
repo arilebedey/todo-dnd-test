@@ -1,68 +1,60 @@
+import { DragDropContext } from "@hello-pangea/dnd";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../app/store";
 import { reorderTask } from "./TasksSlice";
-import {
-  DndContext,
-  useSensor,
-  useSensors,
-  KeyboardSensor,
-  PointerSensor,
-  TouchSensor,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
-import { SortableTaskItem } from "../SortableTaskItem";
+import { SortableContainer } from "../../widgets/SortableContainer";
 
 export const TaskList = () => {
   const tasks = useSelector((state: RootState) => state.task);
+  const notCompletedTasks = tasks[0];
+  const completedTasks = tasks[1];
+
   const dispatch = useDispatch();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  const onDragEnd = (result: any) => {
+    const { source, destination } = result;
 
-  if (tasks.length === 0) {
-    return null;
+    if (!destination) return;
+
+    const toCategoryId = destination.droppableId;
+    const fromCategoryId = source.droppableId;
+
+    const fromIndex = source.index;
+    const toIndex = destination.index;
+
+    if (toIndex === fromIndex && toCategoryId === fromCategoryId) {
+      return;
+    }
+
+    dispatch(
+      reorderTask({
+        fromIndex,
+        toIndex,
+        fromCategoryId,
+        toCategoryId,
+      }),
+    );
+  };
+
+  let isTaskListEmpty = false;
+  if (tasks[0].data.length === 0 && tasks[1].data.length === 0) {
+    isTaskListEmpty = true;
   }
 
-  const handleReorderTask = (fromIndex: number, toIndex: number) => {
-    dispatch(reorderTask({ fromIndex, toIndex }));
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const fromIndex = tasks.findIndex((task) => task.id === active.id);
-      const toIndex = tasks.findIndex((task) => task.id === over.id);
-      handleReorderTask(fromIndex, toIndex);
-    }
-  };
-
   return (
-    <div className="w-full">
-      <ul className="flex flex-col w-full">
-        <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-          <SortableContext
-            strategy={verticalListSortingStrategy}
-            items={tasks.map((task) => task.id)}
-          >
-            {tasks
-              .slice()
-              .reverse()
-              .map((task) => (
-                <SortableTaskItem key={task.id} task={task} />
-              ))}
-          </SortableContext>
-        </DndContext>
-      </ul>
-    </div>
+    <>
+      {!isTaskListEmpty ? (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <SortableContainer items={notCompletedTasks} />
+          <SortableContainer items={completedTasks} />
+        </DragDropContext>
+      ) : (
+        <div className="flex items-center w-full pt-14">
+          <span className="text-white text-left">
+            New tasks will appear here
+          </span>
+        </div>
+      )}
+    </>
   );
 };

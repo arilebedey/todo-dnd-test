@@ -27,7 +27,7 @@ export const NewTask = () => {
         onIsValid={setIsInputValid}
         onError={setInputError}
         buttonRef={buttonRef}
-        placeholder="Новая задача"
+        placeholder="New task"
         onInputFocus={setIsAddTodoInputFocused}
         inputFocusState={isAddTodoInputFocused}
         formClassName="flex flex-grow"

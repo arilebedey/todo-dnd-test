@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   RiCheckboxBlankCircleFill,
   RiCheckboxBlankCircleLine,
@@ -7,20 +7,22 @@ import { FiEdit3 } from "react-icons/fi";
 import { PiTrashSimple } from "react-icons/pi";
 import { FaCheck, FaExclamation } from "react-icons/fa";
 import { TodoInput } from "../../widgets/TodoInput";
-import { removeTask, toggleTask } from "../TaskList/TasksSlice";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { useDispatch } from "react-redux";
+import { removeTask, TaskData, toggleTask } from "../TaskList/TasksSlice";
 
 interface SortableTaskItemProps {
-  task: {
-    id: number;
-    title: string;
-    completed: boolean;
-  };
+  task: TaskData;
+  provided: any;
+  snapshot: any;
+  categoryId: string;
 }
 
-export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
+export const SortableTaskItem = ({
+  task: item,
+  provided,
+  snapshot,
+  categoryId,
+}: SortableTaskItemProps) => {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [editButtonClick, setEditButtonClick] = useState<{
     type: string;
@@ -31,8 +33,6 @@ export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
   const [isInputValid, setIsInputValid] = useState(Boolean);
   const [isEditTodoInputFocused, setIsEditTodoInputFocused] = useState(false);
   const dispatch = useDispatch();
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: task.id });
 
   useEffect(() => {
     if (inputError) {
@@ -46,43 +46,44 @@ export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
     }
   }, [inputError]);
 
-  const dndStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+  const handleRemoveTask = (id: number, isCompleted: boolean) => {
+    dispatch(removeTask({ id, isCompleted }));
   };
 
-  const handleRemoveTask = (id: number) => {
-    dispatch(removeTask(id));
-  };
-
-  const handleToggleTask = (id: number) => {
-    dispatch(toggleTask(id));
+  const handleToggleTask = (id: number, isCompleted: boolean) => {
+    dispatch(toggleTask({ id, isCompleted }));
   };
 
   const preventDragHandler = (event: React.SyntheticEvent) => {
     event.stopPropagation();
   };
 
+  const isCompleted = categoryId === "completed";
+
   return (
-    <div
+    <li
       className="flex flex-col touch-none"
-      key={task.id}
-      ref={setNodeRef}
-      style={dndStyle}
-      {...attributes}
-      {...listeners}
+      ref={provided.innerRef}
+      {...provided.draggableProps}
+      {...provided.dragHandleProps}
+      style={{
+        ...provided.draggableProps.style,
+        opacity: snapshot.isDragging ? 0.8 : 1,
+      }}
     >
-      <div className="flex w-full min-h-[80px] items-center justify-between rounded-lg bg-theme-800 my-2">
-        {task.id !== editButtonClick.taskId ? (
-          <li
-            className={`text-lg text-left ml-4 pr-4 py-3 ${task.completed ? "line-through text-green" : "text-theme-100"}`}
+      <div
+        className={`flex w-full min-h-[80px] items-center justify-between rounded-lg my-2 ${snapshot.isDragging ? "bg-gray-500" : "bg-theme-800"}`}
+      >
+        {item.id !== editButtonClick.taskId ? (
+          <p
+            className={`text-lg text-left ml-4 pr-4 py-3 list-none ${isCompleted ? "line-through text-green" : "text-theme-100"}`}
           >
-            {task.title}
-          </li>
+            {item.title}
+          </p>
         ) : (
           <TodoInput
             handler={2}
-            placeholder="Вы редактируете задачу"
+            placeholder="You are editing this task"
             onError={setInputError}
             onIsValid={setIsInputValid}
             inputFocusState={isEditTodoInputFocused}
@@ -92,28 +93,29 @@ export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
             buttonRef={buttonRef}
             TaskToEdit={editButtonClick}
             onSubmitEdit={setEditButtonClick}
-            value={task.title}
+            value={item.title}
+            completionStatus={isCompleted}
           />
         )}
         <div className="flex">
           <button
-            onClick={() => handleToggleTask(task.id)}
+            onClick={() => handleToggleTask(item.id, isCompleted)}
             onPointerDown={(e) => preventDragHandler(e)}
             onTouchStart={(e) => preventDragHandler(e)}
           >
-            {!task.completed ? (
+            {!isCompleted ? (
               <RiCheckboxBlankCircleLine className="size-5 text-theme-100 mr-4" />
             ) : (
               <RiCheckboxBlankCircleFill className="size-5 text-theme-100 mr-4" />
             )}
           </button>
-          {editButtonClick.taskId !== task.id && (
+          {editButtonClick.taskId !== item.id && (
             <button
               ref={buttonRef}
               onClick={() =>
                 setEditButtonClick({
                   type: "edit",
-                  taskId: task.id,
+                  taskId: item.id,
                 })
               }
               onPointerDown={(e) => preventDragHandler(e)}
@@ -122,13 +124,13 @@ export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
               <FiEdit3 className="size-5 text-theme-100 mr-4" />
             </button>
           )}
-          {editButtonClick.taskId === task.id && isInputValid && (
+          {editButtonClick.taskId === item.id && isInputValid && (
             <button
               ref={buttonRef}
               onClick={() =>
                 setEditButtonClick({
                   type: "update",
-                  taskId: task.id,
+                  taskId: item.id,
                 })
               }
               onPointerDown={(e) => preventDragHandler(e)}
@@ -137,13 +139,13 @@ export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
               <FaCheck className="size-5 text-theme-100 mr-4" />
             </button>
           )}
-          {editButtonClick.taskId === task.id && !isInputValid && (
+          {editButtonClick.taskId === item.id && !isInputValid && (
             <button
               ref={buttonRef}
               onClick={() =>
                 setEditButtonClick({
                   type: "update",
-                  taskId: task.id,
+                  taskId: item.id,
                 })
               }
               onPointerDown={(e) => preventDragHandler(e)}
@@ -153,7 +155,7 @@ export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
             </button>
           )}
           <button
-            onClick={() => handleRemoveTask(task.id)}
+            onClick={() => handleRemoveTask(item.id, isCompleted)}
             onPointerDown={(e) => preventDragHandler(e)}
             onTouchStart={(e) => preventDragHandler(e)}
           >
@@ -161,9 +163,9 @@ export const SortableTaskItem = ({ task }: SortableTaskItemProps) => {
           </button>
         </div>
       </div>
-      {editButtonClick.taskId == task.id && showError && inputError && (
-        <p className="text-red-500">{inputError.message}</p>
+      {editButtonClick.taskId == item.id && showError && inputError && (
+        <p className="text-red-700">{inputError.message}</p>
       )}
-    </div>
+    </li>
   );
 };

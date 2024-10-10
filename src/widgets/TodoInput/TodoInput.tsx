@@ -21,6 +21,7 @@ type TodoInputProps = {
   TaskToEdit?: { type: string; taskId: number | null };
   onSubmitEdit?: (params: { type: string; taskId: number | null }) => void;
   value?: string;
+  completionStatus?: boolean;
 };
 
 export const TodoInput: React.FC<TodoInputProps> = ({
@@ -36,6 +37,7 @@ export const TodoInput: React.FC<TodoInputProps> = ({
   onSubmitEdit,
   TaskToEdit,
   value,
+  completionStatus,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [refocusInputTrigger, setRefocusInputTrigger] = useState(false);
@@ -64,14 +66,21 @@ export const TodoInput: React.FC<TodoInputProps> = ({
       if (
         TaskToEdit?.taskId !== undefined &&
         TaskToEdit.taskId !== null &&
-        onSubmitEdit
+        onSubmitEdit &&
+        completionStatus !== undefined
       ) {
-        dispatch(updateTask({ id: TaskToEdit?.taskId, title: data.newTask }));
+        dispatch(
+          updateTask({
+            id: TaskToEdit?.taskId,
+            title: data.newTask,
+            isCompleted: completionStatus,
+          }),
+        );
         onSubmitEdit({ type: TaskToEdit.type, taskId: null });
         reset();
       }
     },
-    [reset, dispatch, TaskToEdit, onSubmitEdit],
+    [reset, dispatch, TaskToEdit, onSubmitEdit, completionStatus],
   );
 
   const dispatchHandler = useCallback(
@@ -231,6 +240,7 @@ export const TodoInput: React.FC<TodoInputProps> = ({
           placeholder={placeholder}
           defaultValue={value ? value : ""}
           className={clsx("", inputClassName)}
+          autoComplete="off"
           {...rest}
           ref={(e) => {
             HookFormRef(e);

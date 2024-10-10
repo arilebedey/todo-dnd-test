@@ -1,26 +1,37 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-interface TaskData {
+export type TasksData = {
+  name: string;
+  data: TaskData[];
+};
+
+export type TaskData = {
   id: number;
   title: string;
-  completed: boolean;
-}
+};
 
-const initialState: TaskData[] = [
+const initialState: TasksData[] = [
   {
-    id: 3,
-    title: "Surf",
-    completed: true,
+    name: "notcompleted",
+    data: [
+      {
+        id: 111111111111,
+        title: "Share a moment",
+      },
+      {
+        id: 222222222222,
+        title: "Make some memories",
+      },
+    ],
   },
   {
-    id: 2,
-    title: "Share with someone",
-    completed: false,
-  },
-  {
-    id: 1,
-    title: "Make more money",
-    completed: false,
+    name: "completed",
+    data: [
+      {
+        id: 333333333333,
+        title: "Have a break",
+      },
+    ],
   },
 ];
 
@@ -29,40 +40,89 @@ export const tasksSlice = createSlice({
   initialState,
   reducers: {
     addTask: (state, action: PayloadAction<string>) => {
-      state.push({
-        id: Date.now(),
-        completed: false,
-        title: action.payload,
-      });
-    },
-    removeTask: (state, action: PayloadAction<number>) => {
-      const index = state.findIndex((task) => task.id === action.payload);
-      if (index !== -1) {
-        state.splice(index, 1);
+      const notCompletedCategory = state.find(
+        (category) => category.name === "notcompleted",
+      );
+      if (notCompletedCategory) {
+        notCompletedCategory.data.unshift({
+          id: Date.now(),
+          title: action.payload,
+        });
       }
     },
-    toggleTask: (state, action: PayloadAction<number>) => {
-      const task = state.find((task) => task.id === action.payload);
-      if (task) {
-        task.completed = !task.completed;
+    removeTask: (
+      state,
+      action: PayloadAction<{ id: number; isCompleted: boolean }>,
+    ) => {
+      const category = action.payload.isCompleted ? state[1] : state[0];
+      const index = category.data.findIndex(
+        (task) => task.id === action.payload.id,
+      );
+      if (index !== -1) {
+        category.data.splice(index, 1);
+      }
+    },
+    toggleTask: (
+      state,
+      action: PayloadAction<{ id: number; isCompleted: boolean }>,
+    ) => {
+      const source = action.payload.isCompleted ? state[1] : state[0];
+      const destination = action.payload.isCompleted ? state[0] : state[1];
+      const index = source.data.findIndex(
+        (task) => task.id === action.payload.id,
+      );
+      if (index !== -1) {
+        const [toggledTask] = source.data.splice(index, 1);
+        destination.data.splice(0, 0, toggledTask);
       }
     },
     updateTask: (
       state,
-      action: PayloadAction<{ id: number; title: string }>,
+      action: PayloadAction<{
+        id: number;
+        title: string;
+        isCompleted: boolean;
+      }>,
     ) => {
-      const task = state.find((task) => task.id === action.payload.id);
-      if (task) {
-        task.title = action.payload.title;
+      const category = action.payload.isCompleted ? state[1] : state[0];
+      const index = category.data.findIndex(
+        (task) => task.id === action.payload.id,
+      );
+      if (index !== -1) {
+        category.data[index].title = action.payload.title;
       }
     },
     reorderTask: (
       state,
-      action: PayloadAction<{ fromIndex: number; toIndex: number }>,
+      action: PayloadAction<{
+        fromIndex: number;
+        toIndex: number;
+        fromCategoryId: string;
+        toCategoryId: string;
+      }>,
     ) => {
-      const { fromIndex, toIndex } = action.payload;
-      const [movedTask] = state.splice(fromIndex, 1);
-      state.splice(toIndex, 0, movedTask);
+      const { fromIndex, toIndex, fromCategoryId, toCategoryId } =
+        action.payload;
+      if (fromCategoryId === toCategoryId) {
+        const category = state.find(
+          (category) => category.name === fromCategoryId,
+        );
+        if (category) {
+          const [movedTask] = category.data.splice(fromIndex, 1);
+          category.data.splice(toIndex, 0, movedTask);
+        }
+      } else {
+        const toCategory = state.find(
+          (category) => category.name === toCategoryId,
+        );
+        const fromCategory = state.find(
+          (category) => category.name === fromCategoryId,
+        );
+        if (toCategory && fromCategory) {
+          const [movedTask] = fromCategory.data.splice(fromIndex, 1);
+          toCategory.data.splice(toIndex, 0, movedTask);
+        }
+      }
     },
   },
 });
