@@ -225,6 +225,7 @@ export const TodoInput: React.FC<TodoInputProps> = ({
       <form
         className={clsx("", formClassName)}
         onSubmit={handleSubmit(dispatchHandler(handler))}
+        autoComplete="off"
       >
         <input
           type="text"

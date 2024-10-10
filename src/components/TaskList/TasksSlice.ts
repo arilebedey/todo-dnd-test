@@ -1,10 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-interface TaskData {
+export type TaskData = {
   id: number;
   title: string;
   completed: boolean;
-}
+};
 
 const initialState: TaskData[] = [
   {
@@ -15,7 +15,7 @@ const initialState: TaskData[] = [
   {
     id: 2,
     title: "Share with someone",
-    completed: false,
+    completed: true,
   },
   {
     id: 1,
@@ -58,9 +58,15 @@ export const tasksSlice = createSlice({
     },
     reorderTask: (
       state,
-      action: PayloadAction<{ fromIndex: number; toIndex: number }>,
+      action: PayloadAction<{ fromId: number; toId: number }>,
     ) => {
-      const { fromIndex, toIndex } = action.payload;
+      const { fromId, toId } = action.payload;
+
+      const fromIndex = state.findIndex((task) => task.id === fromId);
+      const toIndex = state.findIndex((task) => task.id === toId);
+
+      if (fromIndex === -1 || toIndex === -1) return;
+
       const [movedTask] = state.splice(fromIndex, 1);
       state.splice(toIndex, 0, movedTask);
     },
