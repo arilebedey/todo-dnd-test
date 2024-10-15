@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import {
   RiCheckboxBlankCircleFill,
   RiCheckboxBlankCircleLine,
@@ -9,6 +9,7 @@ import { FaCheck, FaExclamation } from "react-icons/fa";
 import { TodoInput } from "../../widgets/TodoInput";
 import { useDispatch } from "react-redux";
 import { removeTask, TaskData, toggleTask } from "../TaskList/TasksSlice";
+import { TaskRemovalDialog } from "../../widgets/TaskRemovalDialog";
 
 interface SortableTaskItemProps {
   task: TaskData;
@@ -33,6 +34,24 @@ export const SortableTaskItem = ({
   const [isInputValid, setIsInputValid] = useState(Boolean);
   const [isEditTodoInputFocused, setIsEditTodoInputFocused] = useState(false);
   const dispatch = useDispatch();
+  const [triggerTaskRemovalDialog, setTriggerTaskRemovalDialog] =
+    useState(false);
+
+  const DialogAcceptStatusEnum = useMemo(
+    () => ({
+      REJECTED: "rejected",
+      PENDING: "pending",
+      ACCEPTED: "accepted",
+    }),
+    [],
+  );
+
+  type DialogAcceptStatus =
+    (typeof DialogAcceptStatusEnum)[keyof typeof DialogAcceptStatusEnum];
+  const [dialogAcceptStatus, setDialogAcceptStatus] =
+    useState<DialogAcceptStatus>(DialogAcceptStatusEnum.PENDING);
+
+  const isCompleted = categoryId === "completed";
 
   useEffect(() => {
     if (inputError) {
@@ -46,8 +65,26 @@ export const SortableTaskItem = ({
     }
   }, [inputError]);
 
-  const handleRemoveTask = (id: number, isCompleted: boolean) => {
-    dispatch(removeTask({ id, isCompleted }));
+  useEffect(() => {
+    if (dialogAcceptStatus === DialogAcceptStatusEnum.ACCEPTED) {
+      dispatch(removeTask({ id: item.id, isCompleted }));
+    }
+
+    if (dialogAcceptStatus === DialogAcceptStatusEnum.REJECTED) {
+      setTriggerTaskRemovalDialog(false);
+      setDialogAcceptStatus(DialogAcceptStatusEnum.PENDING);
+    }
+  }, [
+    dialogAcceptStatus,
+    dispatch,
+    item.id,
+    isCompleted,
+    triggerTaskRemovalDialog,
+    DialogAcceptStatusEnum,
+  ]);
+
+  const handleRemoveTask = () => {
+    setTriggerTaskRemovalDialog(true);
   };
 
   const handleToggleTask = (id: number, isCompleted: boolean) => {
@@ -58,114 +95,118 @@ export const SortableTaskItem = ({
     event.stopPropagation();
   };
 
-  const isCompleted = categoryId === "completed";
-
   return (
-    <li
-      className="flex flex-col touch-none"
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
-      style={{
-        ...provided.draggableProps.style,
-        opacity: snapshot.isDragging ? 0.8 : 1,
-      }}
-    >
-      <div
-        className={`flex w-full min-h-[80px] items-center justify-between rounded-lg my-2 ${snapshot.isDragging ? "bg-gray-500" : "bg-theme-800"}`}
+    <>
+      <li
+        className="flex flex-col touch-none"
+        ref={provided.innerRef}
+        {...provided.draggableProps}
+        {...provided.dragHandleProps}
+        style={{
+          ...provided.draggableProps.style,
+          opacity: snapshot.isDragging ? 0.8 : 1,
+        }}
       >
-        {item.id !== editButtonClick.taskId ? (
-          <p
-            className={`text-lg text-left ml-4 pr-4 py-3 list-none ${isCompleted ? "line-through text-green" : "text-theme-100"}`}
-          >
-            {item.title}
-          </p>
-        ) : (
-          <TodoInput
-            handler={2}
-            placeholder="You are editing this task"
-            onError={setInputError}
-            onIsValid={setIsInputValid}
-            inputFocusState={isEditTodoInputFocused}
-            onInputFocus={setIsEditTodoInputFocused}
-            formClassName="flex flex-grow px-3"
-            inputClassName="flex-grow h-[40px] bg-theme-900 rounded-lg border border-gray px-3"
-            buttonRef={buttonRef}
-            TaskToEdit={editButtonClick}
-            onSubmitEdit={setEditButtonClick}
-            value={item.title}
-            completionStatus={isCompleted}
-          />
-        )}
-        <div className="flex">
-          <button
-            onClick={() => handleToggleTask(item.id, isCompleted)}
-            onPointerDown={(e) => preventDragHandler(e)}
-            onTouchStart={(e) => preventDragHandler(e)}
-          >
-            {!isCompleted ? (
-              <RiCheckboxBlankCircleLine className="size-5 text-theme-100 mr-4" />
-            ) : (
-              <RiCheckboxBlankCircleFill className="size-5 text-theme-100 mr-4" />
+        <div
+          className={`flex w-full min-h-[80px] items-center justify-between rounded-lg my-2 ${snapshot.isDragging ? "bg-gray-500" : "bg-theme-800"}`}
+        >
+          {item.id !== editButtonClick.taskId ? (
+            <p
+              className={`text-lg text-left ml-4 pr-4 py-3 list-none ${isCompleted ? "line-through text-green" : "text-theme-100"}`}
+            >
+              {item.title}
+            </p>
+          ) : (
+            <TodoInput
+              handler={2}
+              placeholder="You are editing this task"
+              onError={setInputError}
+              onIsValid={setIsInputValid}
+              inputFocusState={isEditTodoInputFocused}
+              onInputFocus={setIsEditTodoInputFocused}
+              formClassName="flex flex-grow px-3"
+              inputClassName="flex-grow h-[40px] bg-theme-900 rounded-lg border border-gray px-3"
+              buttonRef={buttonRef}
+              TaskToEdit={editButtonClick}
+              onSubmitEdit={setEditButtonClick}
+              value={item.title}
+              completionStatus={isCompleted}
+            />
+          )}
+          <div className="flex">
+            <button
+              onClick={() => handleToggleTask(item.id, isCompleted)}
+              onPointerDown={(e) => preventDragHandler(e)}
+              onTouchStart={(e) => preventDragHandler(e)}
+            >
+              {!isCompleted ? (
+                <RiCheckboxBlankCircleLine className="size-5 text-theme-100 mr-4" />
+              ) : (
+                <RiCheckboxBlankCircleFill className="size-5 text-theme-100 mr-4" />
+              )}
+            </button>
+            {editButtonClick.taskId !== item.id && (
+              <button
+                ref={buttonRef}
+                onClick={() =>
+                  setEditButtonClick({
+                    type: "edit",
+                    taskId: item.id,
+                  })
+                }
+                onPointerDown={(e) => preventDragHandler(e)}
+                onTouchStart={(e) => preventDragHandler(e)}
+              >
+                <FiEdit3 className="size-5 text-theme-100 mr-4" />
+              </button>
             )}
-          </button>
-          {editButtonClick.taskId !== item.id && (
+            {editButtonClick.taskId === item.id && isInputValid && (
+              <button
+                ref={buttonRef}
+                onClick={() =>
+                  setEditButtonClick({
+                    type: "update",
+                    taskId: item.id,
+                  })
+                }
+                onPointerDown={(e) => preventDragHandler(e)}
+                onTouchStart={(e) => preventDragHandler(e)}
+              >
+                <FaCheck className="size-5 text-theme-100 mr-4" />
+              </button>
+            )}
+            {editButtonClick.taskId === item.id && !isInputValid && (
+              <button
+                ref={buttonRef}
+                onClick={() =>
+                  setEditButtonClick({
+                    type: "update",
+                    taskId: item.id,
+                  })
+                }
+                onPointerDown={(e) => preventDragHandler(e)}
+                onTouchStart={(e) => preventDragHandler(e)}
+              >
+                <FaExclamation className="size-5 text-red-700 mr-4" />
+              </button>
+            )}
             <button
-              ref={buttonRef}
-              onClick={() =>
-                setEditButtonClick({
-                  type: "edit",
-                  taskId: item.id,
-                })
-              }
+              onClick={() => handleRemoveTask()}
               onPointerDown={(e) => preventDragHandler(e)}
               onTouchStart={(e) => preventDragHandler(e)}
             >
-              <FiEdit3 className="size-5 text-theme-100 mr-4" />
+              <PiTrashSimple className="size-5 text-theme-100 mr-4 cursor-pointer" />
             </button>
-          )}
-          {editButtonClick.taskId === item.id && isInputValid && (
-            <button
-              ref={buttonRef}
-              onClick={() =>
-                setEditButtonClick({
-                  type: "update",
-                  taskId: item.id,
-                })
-              }
-              onPointerDown={(e) => preventDragHandler(e)}
-              onTouchStart={(e) => preventDragHandler(e)}
-            >
-              <FaCheck className="size-5 text-theme-100 mr-4" />
-            </button>
-          )}
-          {editButtonClick.taskId === item.id && !isInputValid && (
-            <button
-              ref={buttonRef}
-              onClick={() =>
-                setEditButtonClick({
-                  type: "update",
-                  taskId: item.id,
-                })
-              }
-              onPointerDown={(e) => preventDragHandler(e)}
-              onTouchStart={(e) => preventDragHandler(e)}
-            >
-              <FaExclamation className="size-5 text-red-700 mr-4" />
-            </button>
-          )}
-          <button
-            onClick={() => handleRemoveTask(item.id, isCompleted)}
-            onPointerDown={(e) => preventDragHandler(e)}
-            onTouchStart={(e) => preventDragHandler(e)}
-          >
-            <PiTrashSimple className="size-5 text-theme-100 mr-4 cursor-pointer" />
-          </button>
+          </div>
         </div>
-      </div>
-      {editButtonClick.taskId == item.id && showError && inputError && (
-        <p className="text-red-700">{inputError.message}</p>
-      )}
-    </li>
+        {editButtonClick.taskId == item.id && showError && inputError && (
+          <p className="text-red-700">{inputError.message}</p>
+        )}
+      </li>
+      <TaskRemovalDialog
+        trigger={triggerTaskRemovalDialog}
+        onUserChoice={setDialogAcceptStatus}
+      />
+    </>
   );
 };
